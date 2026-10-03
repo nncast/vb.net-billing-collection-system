@@ -205,6 +205,8 @@
             Else
                 Exit Sub
             End If
+        ElseIf MsgBox("Are you sure you want to delete this bill?", MsgBoxStyle.Question + MsgBoxStyle.YesNo, "Confirm Deletion") <> MsgBoxResult.Yes Then
+            Exit Sub
         End If
 
         SetQuery("DELETE FROM tblbills WHERE id = " & selectedBillID)

@@ -102,7 +102,7 @@
             Exit Sub
         End If
 
-        If CDec(txtcurr.Text) <= CDec(txtprev.Text) Then
+        If CDec(txtcurr.Text) < CDec(txtprev.Text) Then
             MsgBox("Current reading must be greater than or equal to previous reading.", MsgBoxStyle.Exclamation)
             Exit Sub
         End If
@@ -271,17 +271,18 @@
             Dim paymentCount As Integer = ds.Tables("hasPayments").Rows(0)(0)
 
             If paymentCount > 0 Then
-                If MsgBox("This reading is linked to a bill with " & paymentCount & " payment(s). Deleting it will also delete all related transactions. Continue?", MsgBoxStyle.Critical + MsgBoxStyle.YesNo, "Confirm Deletion") = MsgBoxResult.Yes Then
-                    SetQuery("DELETE FROM tblpayments WHERE billid = " & billID)
-                Else
+                If MsgBox("This reading is linked to a bill with " & paymentCount & " payment(s). Deleting it will also delete all related transactions. Continue?", MsgBoxStyle.Critical + MsgBoxStyle.YesNo, "Confirm Deletion") <> MsgBoxResult.Yes Then
                     Exit Sub
                 End If
             End If
-
-            SetQuery("DELETE FROM tblbills WHERE id = " & billID)
         End If
 
         If MsgBox("Are you sure you want to delete this reading record?", MsgBoxStyle.Question + MsgBoxStyle.YesNo, "Delete Reading") = MsgBoxResult.Yes Then
+            If billExists Then
+                SetQuery("DELETE FROM tblpayments WHERE billid = " & billID)
+                SetQuery("DELETE FROM tblbills WHERE id = " & billID)
+            End If
+
             SetQuery("DELETE FROM tblreadings WHERE id = " & selectedReadingID)
             MsgBox("Reading and all related transactions deleted successfully!", MsgBoxStyle.Information)
 

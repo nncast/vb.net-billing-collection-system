@@ -59,7 +59,11 @@ It allows administrators to create consumer records, generate electricity bills 
    git clone https://github.com/nncast/vb.net-billing-collection-system.git
    ```
 2. Start MySQL using XAMPP, WAMP, or another server stack.
-3. Create the `dbbilling` database. The repository doesn't include a `.sql` script yet, so the tables have to be created by hand for now.
+3. Import `database/dbbilling.sql` with SQLYog or another MySQL client, or from the CLI:
+   ```bash
+   mysql -u root -p < database/dbbilling.sql
+   ```
+   It creates the `dbbilling` database with sample consumers, readings, bills and payments, plus a starting rate of ₱12.50/kWh. Keep at least one rate: bills are priced with the newest one.
 4. Open `BillingAndCollectionSystem/BillingAndCollectionSystem.sln` in Visual Studio.
 5. Make sure the project targets .NET Framework 4.8.1 or later and that `MySql.Data.dll` is referenced.
 6. Build and run the project.
