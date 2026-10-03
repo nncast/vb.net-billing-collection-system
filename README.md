@@ -21,7 +21,16 @@
 **BillingAndCollectionSystem** is a desktop application developed in **VB.NET** designed for utility service providers to manage consumer billing and payments.
 It allows administrators to create consumer records, generate electricity bills based on meter readings, and track collections and payments.
 
-> **Current version: v0.1.0** — first tagged release. See [Releases](https://github.com/nncast/vb.net-billing-collection-system/releases) for the project timeline.
+> **Current version: v0.1.0** — first tagged release. See [Releases](https://github.com/nncast/vb.net-billing-collection-system/releases) for the release notes.
+
+<p align="center">
+  <img src="assets/screenshots/home.png" width="400" alt="Home dashboard"/>
+  <img src="assets/screenshots/consumers.png" width="400" alt="Consumer records"/>
+  <img src="assets/screenshots/readings.png" width="400" alt="Meter readings"/>
+  <img src="assets/screenshots/bills.png" width="400" alt="Bills"/>
+  <img src="assets/screenshots/payments.png" width="400" alt="Payments"/>
+  <img src="assets/screenshots/reports.png" width="400" alt="Monthly report"/>
+</p>
 
 ## Features
 
@@ -67,10 +76,6 @@ It allows administrators to create consumer records, generate electricity bills 
 4. Open `BillingAndCollectionSystem/BillingAndCollectionSystem.sln` in Visual Studio.
 5. Make sure the project targets .NET Framework 4.8.1 or later and that `MySql.Data.dll` is referenced.
 6. Build and run the project.
-
-## Developer
-
-Janelle Ann Castillo ([nncast](https://github.com/nncast))
 
 ---
 

@@ -131,26 +131,30 @@ SET FOREIGN_KEY_CHECKS = 1;
 --  Seed data — a starting rate (required before any bill can be created)
 --  plus a few sample records so every screen has something to show.
 --  Bill amounts = usage x rate (12.50/kWh); statuses match the payments.
+--  Dates are relative to the day you import this file (readings at the end
+--  of the last two months, one payment today), so the home dashboard's
+--  "this month" total and current-year chart have data to show.
 --  Everything except the rate is safe to delete.
 -- ============================================================================
 
 INSERT INTO tblrates (date, rate) VALUES
-  ('2025-01-01 08:00:00', 12.50);
+  (CURDATE() - INTERVAL 3 MONTH, 12.50);
 
 INSERT INTO tblconsumers (fname, lname, phone, address) VALUES
   ('Juan', 'Dela Cruz', '0917-123-4567', 'Purok 1, Brgy. San Isidro'),
   ('Maria', 'Santos', '0918-765-4321', 'Purok 3, Brgy. Poblacion');
 
 INSERT INTO tblreadings (consumerid, date, prev, curr) VALUES
-  (1, '2025-04-30', 0.00,   120.00),
-  (1, '2025-05-31', 120.00, 250.00),
-  (2, '2025-05-31', 0.00,   90.00);
+  (1, LAST_DAY(CURDATE() - INTERVAL 2 MONTH), 0.00,   120.00),
+  (1, LAST_DAY(CURDATE() - INTERVAL 1 MONTH), 120.00, 250.00),
+  (2, LAST_DAY(CURDATE() - INTERVAL 1 MONTH), 0.00,   90.00);
 
+-- Due dates are 15 days after each reading, as frmBills.vb suggests.
 INSERT INTO tblbills (readingid, duedate, amount, status) VALUES
-  (1, '2025-05-15', 1500.00, 'Paid'),
-  (2, '2025-06-15', 1625.00, 'Partial'),
-  (3, '2025-06-15', 1125.00, 'Unpaid');
+  (1, LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 15 DAY, 1500.00, 'Paid'),
+  (2, LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 15 DAY, 1625.00, 'Partial'),
+  (3, LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 15 DAY, 1125.00, 'Unpaid');
 
 INSERT INTO tblpayments (billid, date, amount) VALUES
-  (1, '2025-05-10', 1500.00),
-  (2, '2025-06-05', 1000.00);
+  (1, LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 10 DAY, 1500.00),
+  (2, CURDATE(), 1000.00);
