@@ -1,39 +1,73 @@
-# BillingAndCollectionSystem  
-(2024)
+<p align="center">
+  <img src="BillingAndCollectionSystem/BillingAndCollectionSystem/Resources/LOGO.png" alt="BillingAndCollectionSystem logo" width="160"/>
+</p>
 
-**BillingAndCollectionSystem** is a desktop application developed in **VB.NET** designed for utility service providers to manage consumer billing and payments.  
+<p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.0-F5A300?style=flat-square" alt="version">
+  <img src="https://img.shields.io/badge/status-complete-2772BD?style=flat-square" alt="status">
+  <img src="https://img.shields.io/badge/VB.NET-Windows_Forms-512BD4?style=flat-square&logo=dotnet&logoColor=white" alt="VB.NET">
+  <img src="https://img.shields.io/badge/.NET_Framework-4.8.1-5C2D91?style=flat-square&logo=dotnet&logoColor=white" alt=".NET Framework">
+  <img src="https://img.shields.io/badge/MySQL-XAMPP-4479A1?style=flat-square&logo=mysql&logoColor=white" alt="MySQL">
+</p>
+
+<p align="center">
+  <b>Download v0.1.0:</b>
+  <a href="https://github.com/nncast/vb.net-billing-collection-system/archive/refs/tags/v0.1.0.zip">Source (.zip)</a> |
+  <a href="https://github.com/nncast/vb.net-billing-collection-system/releases">All releases</a>
+</p>
+
+# BillingAndCollectionSystem
+
+**BillingAndCollectionSystem** is a desktop application developed in **VB.NET** designed for utility service providers to manage consumer billing and payments.
 It allows administrators to create consumer records, generate electricity bills based on meter readings, and track collections and payments.
 
+> **Current version: v0.1.0** — first tagged release. See [Releases](https://github.com/nncast/vb.net-billing-collection-system/releases) for the project timeline.
+
 ## Features
+
 - Register and manage consumer information
 - Record meter readings and generate monthly electricity bills
 - Track billing history and payment status
 - Record partial or full payments
 - Windows Forms interface with MySQL database integration
 
-## Requirements
-- Visual Studio 2012 or later  
-  [Download Visual Studio](https://visualstudio.microsoft.com/downloads/)
-- .NET Framework 4.8.1 or later  
-  [Download .NET Framework 4.8.1](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net481)
-- XAMPP or WAMP (for MySQL)  
-  [Download XAMPP](https://www.apachefriends.org/index.html)  
-  [Download WAMP](https://www.wampserver.com/en/)
-- SQLYog or any MySQL client  
-  [Download SQLYog](https://github.com/webyog/sqlyog-community/wiki/Downloads)
-- MySQL .NET Connector (`MySql.Data.dll`)  
-  [Download Connector/NET](https://dev.mysql.com/downloads/connector/net/)
+## Development environment
 
-## Installation
-1. Download and extract the project `.zip` file.
+| Category | Details |
+| --- | --- |
+| Language | Visual Basic .NET |
+| UI | Windows Forms |
+| Framework | .NET Framework 4.8.1 |
+| Database | MySQL / MariaDB (XAMPP or WAMP) — database `dbbilling` |
+| Driver | MySql.Data (MySQL Connector/NET) |
+| IDE | Visual Studio 2012 or later |
+
+## Requirements
+
+| Tool | Download |
+| --- | --- |
+| Visual Studio 2012 or later | [visualstudio.microsoft.com](https://visualstudio.microsoft.com/downloads/) |
+| .NET Framework 4.8.1 or later | [dotnet.microsoft.com](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net481) |
+| XAMPP or WAMP (for MySQL) | [XAMPP](https://www.apachefriends.org/index.html) · [WAMP](https://www.wampserver.com/en/) |
+| SQLYog or any MySQL client | [SQLYog](https://github.com/webyog/sqlyog-community/wiki/Downloads) |
+| MySQL .NET Connector (`MySql.Data.dll`) | [Connector/NET](https://dev.mysql.com/downloads/connector/net/) |
+
+## Setup and run instructions
+
+1. Clone the repository, or download the [source .zip](https://github.com/nncast/vb.net-billing-collection-system/archive/refs/tags/v0.1.0.zip).
+   ```bash
+   git clone https://github.com/nncast/vb.net-billing-collection-system.git
+   ```
 2. Start MySQL using XAMPP, WAMP, or another server stack.
-3. Use SQLYog to import the `.sql` file located in the `sql` folder to initialize the database.
-4. Open `BillingAndCollectionSystem.sln` in Visual Studio.
-5. Verify the following before running the application:  
-   - The project is targeting .NET Framework 4.8.1 or later.  
-   - `MySql.Data.dll` is properly referenced in the project.
-6. Build and run the application.
+3. Create the `dbbilling` database. The repository doesn't include a `.sql` script yet, so the tables have to be created by hand for now.
+4. Open `BillingAndCollectionSystem/BillingAndCollectionSystem.sln` in Visual Studio.
+5. Make sure the project targets .NET Framework 4.8.1 or later and that `MySql.Data.dll` is referenced.
+6. Build and run the project.
+
+## Developer
+
+Janelle Ann Castillo ([nncast](https://github.com/nncast))
 
 ---
 
-**Developer:** Janelle Ann Castillo ([nncast](https://github.com/nncast))
+*BillingAndCollectionSystem · 2025 · VB.NET · Windows Forms · .NET Framework 4.8.1 · MySQL*
