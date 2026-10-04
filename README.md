@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="BillingAndCollectionSystem/BillingAndCollectionSystem/Resources/LOGO.png" alt="BillingAndCollectionSystem logo" width="160"/>
+  <img src="BillingAndCollectionSystem/BillingAndCollectionSystem/Resources/LOGO.png" alt="BillingAndCollectionSystem logo" width="100"/>
 </p>
 
 <p align="center">
