@@ -1,7 +1,7 @@
 ﻿Public Class frmHome
 
     Private Sub frmHome_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Connect("localhost", "dbbilling", "3306", "root", "")
+        Connect()
         loadform()
     End Sub
 
@@ -14,7 +14,8 @@
         End If
 
 
-        GetQuery("SELECT COUNT(*) AS total FROM tblbills WHERE status = 'Unpaid'", "totalUnpaidBills")
+        ' Partially paid bills still have money owing, so they count as unpaid too.
+        GetQuery("SELECT COUNT(*) AS total FROM tblbills WHERE status IN ('Unpaid', 'Partial')", "totalUnpaidBills")
         If ds.Tables("totalUnpaidBills").Rows.Count > 0 Then
             lblunpaidbills.Text = ds.Tables("totalUnpaidBills").Rows(0)("total").ToString()
         Else
@@ -23,7 +24,7 @@
 
         GetQuery("SELECT IFNULL(SUM(amount), 0) AS total FROM tblpayments WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())", "tblpayments")
         If ds.Tables("tblpayments").Rows.Count > 0 Then
-            lblcollected.Text = "₱ " + (ds.Tables("tblpayments").Rows(0)("total")).ToString
+            lblcollected.Text = "₱ " & Format(CDec(ds.Tables("tblpayments").Rows(0)("total")), "N2")
         Else
             lblcollected.Text = "₱ 0.00"
         End If

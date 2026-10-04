@@ -1,6 +1,6 @@
 ﻿Public Class frmReport
     Private Sub frmReport_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Connect("localhost", "dbbilling", "3306", "root", "")
+        Connect()
         fill()
     End Sub
 
@@ -19,13 +19,13 @@
 
 
         If filter <> "" Then
-            query &= "WHERE DATE_FORMAT(r.date, '%Y-%m') LIKE '%" & filter & "%' "
+            query &= "WHERE DATE_FORMAT(r.date, '%Y-%m') LIKE @f OR c.fname LIKE @f OR c.lname LIKE @f "
         End If
 
 
         query &= "GROUP BY report_month, c.fname, c.lname ORDER BY report_month DESC"
 
-        GetQuery(query, "monthly")
+        GetQuery(query, "monthly", P("@f", "%" & filter & "%"))
 
         lvreport.Items.Clear()
         For Each r As DataRow In ds.Tables("monthly").Rows

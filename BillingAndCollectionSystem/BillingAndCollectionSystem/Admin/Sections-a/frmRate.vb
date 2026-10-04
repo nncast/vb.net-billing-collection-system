@@ -4,7 +4,7 @@
     Public rateid As Integer = Nothing
 
     Private Sub frmRate_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Connect("localhost", "dbbilling", "3306", "root", "")
+        Connect()
         loadform()
     End Sub
 
@@ -24,11 +24,11 @@
         Dim search As String = txtsearch.Text.Trim()
         Dim query As String = "SELECT id, date, rate FROM tblrates"
         If search <> "" Then
-            query &= " WHERE rate LIKE '%" & search & "%' OR date LIKE '%" & search & "%'"
+            query &= " WHERE rate LIKE @s OR date LIKE @s"
         End If
         query &= " ORDER BY date DESC"
 
-        GetQuery(query, "tblrates")
+        GetQuery(query, "tblrates", P("@s", "%" & search & "%"))
         lvrate.Items.Clear()
 
         For Each r As DataRow In ds.Tables("tblrates").Rows
@@ -42,6 +42,7 @@
     Private Sub btnnew_Click(sender As Object, e As EventArgs) Handles btnnew.Click
         enablebuttons()
         clearfields()
+        rateid = Nothing
         adding = True
         pnlinput.Enabled = True
     End Sub
@@ -57,25 +58,34 @@
     End Sub
 
     Private Sub btnsave_Click(sender As Object, e As EventArgs) Handles btnsave.Click
+        Dim rate As Decimal
         If txtrate.Text.Trim() = "" Then
             MsgBox("Rate is required!", MsgBoxStyle.Critical)
             Exit Sub
         End If
+        If Not Decimal.TryParse(txtrate.Text.Trim(), rate) OrElse rate <= 0 Then
+            MsgBox("Rate must be a number greater than zero.", MsgBoxStyle.Critical)
+            Exit Sub
+        End If
 
+        Dim saved As Boolean = False
         If adding Then
             If MsgBox("Add new rate?", MsgBoxStyle.YesNo + MsgBoxStyle.Question) = MsgBoxResult.Yes Then
-                SetQuery("INSERT INTO tblrates (date, rate) VALUES (NOW(), " & txtrate.Text.Trim() & ")")
-                MsgBox("Rate added successfully!")
-                adding = False
+                saved = SetQuery("INSERT INTO tblrates (date, rate) VALUES (NOW(), @rate)", P("@rate", rate))
+                If saved Then MsgBox("Rate added successfully!")
             End If
         ElseIf updating Then
             If MsgBox("Update this rate?", MsgBoxStyle.YesNo + MsgBoxStyle.Question) = MsgBoxResult.Yes Then
-                SetQuery("UPDATE tblrates SET rate = " & txtrate.Text.Trim() & " WHERE id = " & rateid)
-                MsgBox("Rate updated successfully!")
-                updating = False
+                saved = SetQuery("UPDATE tblrates SET rate = @rate WHERE id = @id", P("@rate", rate), P("@id", rateid))
+                If saved Then MsgBox("Rate updated successfully!")
             End If
         End If
 
+        If Not saved Then Exit Sub
+
+        adding = False
+        updating = False
+        rateid = Nothing
         fill()
         clearfields()
         disablebuttons()
@@ -88,19 +98,27 @@
             Exit Sub
         End If
 
+        ' Bills are priced with the newest rate, so at least one must always exist.
+        If CInt(GetValue("SELECT COUNT(*) FROM tblrates")) <= 1 Then
+            MsgBox("This is the only rate. Add a new rate before deleting it, because bills need a rate.", MsgBoxStyle.Exclamation)
+            Exit Sub
+        End If
+
         If MsgBox("Delete this rate?", MsgBoxStyle.YesNo + MsgBoxStyle.Question) = MsgBoxResult.Yes Then
-            SetQuery("DELETE FROM tblrates WHERE id = " & rateid)
-            MsgBox("Rate deleted successfully!")
-            fill()
-            clearfields()
-            rateid = Nothing
+            If SetQuery("DELETE FROM tblrates WHERE id = @id", P("@id", rateid)) Then
+                MsgBox("Rate deleted successfully!")
+                fill()
+                clearfields()
+                rateid = Nothing
+                disablebuttons()
+            End If
         End If
     End Sub
 
     Private Sub lvrate_DoubleClick(sender As Object, e As EventArgs) Handles lvrate.DoubleClick
-        If lvrate.SelectedItems.Count = 0 Then Exit Sub
+        If adding Or updating Or lvrate.SelectedItems.Count = 0 Then Exit Sub
 
-        Dim item = lvrate.FocusedItem
+        Dim item = lvrate.SelectedItems(0)
         rateid = CInt(item.SubItems(0).Text)
         txtrate.Text = item.SubItems(2).Text
 
@@ -113,6 +131,7 @@
             If MsgBox("Cancel current operation?", MsgBoxStyle.YesNo + MsgBoxStyle.Question) = MsgBoxResult.Yes Then
                 adding = False
                 updating = False
+                rateid = Nothing
                 clearfields()
                 disablebuttons()
                 pnlinput.Enabled = False

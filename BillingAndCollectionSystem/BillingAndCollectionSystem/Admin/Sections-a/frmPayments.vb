@@ -5,7 +5,7 @@
     Public selectedPaymentID As Integer = -1
 
     Private Sub frmPayments_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Connect("localhost", "dbbilling", "3306", "root", "")
+        Connect()
         loadform()
     End Sub
 
@@ -24,8 +24,12 @@
         Dim query As String = "SELECT b.id, CONCAT(c.fname, ' ', c.lname) AS fullname, b.duedate, b.amount, b.status " &
                               "FROM tblbills b LEFT JOIN tblreadings r ON b.readingid = r.id " &
                               "LEFT JOIN tblconsumers c ON r.consumerid = c.id " &
-                              "WHERE b.status IN ('Unpaid', 'Partial') ORDER BY b.duedate ASC"
-        GetQuery(query, "bills")
+                              "WHERE b.status IN ('Unpaid', 'Partial')"
+        If txtsearchbill.Text.Trim() <> "" Then
+            query &= " AND (c.fname LIKE @s OR c.lname LIKE @s OR b.id LIKE @s)"
+        End If
+        query &= " ORDER BY b.duedate ASC"
+        GetQuery(query, "bills", P("@s", "%" & txtsearchbill.Text.Trim() & "%"))
 
         lvbills.Items.Clear()
         For Each r As DataRow In ds.Tables("bills").Rows
@@ -39,19 +43,20 @@
     End Sub
 
     Public Sub fillPayments()
-       Dim query As String = "SELECT p.id AS payment_id, CONCAT(c.fname, ' ', c.lname) AS fullname, p.billid, p.date, p.amount, b.amount AS bill_amount " & _
-                       "FROM tblpayments p " & _
-                       "LEFT JOIN tblbills b ON p.billid = b.id " & _
-                       "LEFT JOIN tblreadings r ON b.readingid = r.id " & _
-                       "LEFT JOIN tblconsumers c ON r.consumerid = c.id " & _
-                       "ORDER BY p.billid, p.date ASC"
-
+        Dim query As String = "SELECT p.id AS payment_id, CONCAT(c.fname, ' ', c.lname) AS fullname, p.billid, p.date, p.amount, b.amount AS bill_amount " &
+                              "FROM tblpayments p " &
+                              "LEFT JOIN tblbills b ON p.billid = b.id " &
+                              "LEFT JOIN tblreadings r ON b.readingid = r.id " &
+                              "LEFT JOIN tblconsumers c ON r.consumerid = c.id " &
+                              "ORDER BY p.billid, p.date ASC, p.id ASC"
 
         GetQuery(query, "payments")
         lvpayments.Items.Clear()
 
+        Dim search As String = txtsearch.Text.Trim().ToLower()
         Dim cumulativePaid As New Dictionary(Of Integer, Decimal)
 
+        ' The running balance needs every payment of a bill, so filter only after computing it.
         For Each r As DataRow In ds.Tables("payments").Rows
             Dim billId As Integer = CInt(r("billid"))
             Dim paymentAmount As Decimal = CDec(r("amount"))
@@ -63,10 +68,13 @@
             cumulativePaid(billId) += paymentAmount
 
             Dim balance As Decimal = billAmount - cumulativePaid(billId)
+            Dim name As String = r("fullname").ToString()
+
+            If search <> "" AndAlso Not name.ToLower().Contains(search) AndAlso billId.ToString() <> search Then Continue For
 
             With lvpayments.Items.Add(r("payment_id").ToString())
                 .SubItems.Add(billId.ToString())
-                .SubItems.Add(r("fullname").ToString())
+                .SubItems.Add(name)
                 .SubItems.Add(CDate(r("date")).ToShortDateString())
                 .SubItems.Add(Format(paymentAmount, "N2"))
                 .SubItems.Add(Format(balance, "N2"))
@@ -74,24 +82,19 @@
         Next
     End Sub
 
+    ' Amount still owed on a bill, ignoring one payment (the one being edited).
+    Private Function RemainingBalance(billId As Integer, Optional excludePaymentId As Integer = -1) As Decimal
+        Dim billAmount As Decimal = Convert.ToDecimal(GetValue("SELECT amount FROM tblbills WHERE id = @b", P("@b", billId)))
+        Dim paid As Decimal = Convert.ToDecimal(GetValue("SELECT IFNULL(SUM(amount), 0) FROM tblpayments WHERE billid = @b AND id <> @p", P("@b", billId), P("@p", excludePaymentId)))
+        Return billAmount - paid
+    End Function
+
     Private Sub lvbills_DoubleClick(sender As Object, e As EventArgs) Handles lvbills.DoubleClick
-        If lvbills.SelectedItems.Count = 0 Then Exit Sub
+        If adding Or updating Or lvbills.SelectedItems.Count = 0 Then Exit Sub
 
-        Dim item = lvbills.FocusedItem
-        selectedBillID = CInt(item.SubItems(0).Text)
+        selectedBillID = CInt(lvbills.SelectedItems(0).SubItems(0).Text)
         txtbillid.Text = selectedBillID.ToString()
-
-        Dim billAmount As Decimal = CDec(item.SubItems(3).Text)
-
-        Dim query As String = "SELECT SUM(amount) AS total_paid FROM tblpayments WHERE billid = " & selectedBillID
-        GetQuery(query, "bill_total")
-        Dim totalPaid As Decimal = 0
-        If ds.Tables("bill_total").Rows.Count > 0 AndAlso Not IsDBNull(ds.Tables("bill_total").Rows(0)("total_paid")) Then
-            totalPaid = CDec(ds.Tables("bill_total").Rows(0)("total_paid"))
-        End If
-
-        Dim balance As Decimal = billAmount - totalPaid
-        lblremaining.Text = "₱ " & Format(balance, "N2")
+        lblremaining.Text = "₱ " & Format(RemainingBalance(selectedBillID), "N2")
 
         fillPayments()
 
@@ -100,9 +103,9 @@
     End Sub
 
     Private Sub lvpayments_DoubleClick(sender As Object, e As EventArgs) Handles lvpayments.DoubleClick
-        If lvpayments.SelectedItems.Count = 0 Then Exit Sub
+        If adding Or updating Or lvpayments.SelectedItems.Count = 0 Then Exit Sub
 
-        Dim item = lvpayments.FocusedItem
+        Dim item = lvpayments.SelectedItems(0)
         selectedPaymentID = CInt(item.SubItems(0).Text)
         txtbillid.Text = item.SubItems(1).Text
         dtpdate.Value = CDate(item.SubItems(3).Text)
@@ -115,6 +118,12 @@
 
 
     Private Sub btnnew_Click(sender As Object, e As EventArgs) Handles btnnew.Click
+        If selectedBillID = -1 Then
+            MsgBox("Double-click a pending bill first.", MsgBoxStyle.Information)
+            Exit Sub
+        End If
+
+        Dim billId As Integer = selectedBillID
         adding = True
         pnlinput.Enabled = True
         pnlinput2.Enabled = True
@@ -122,16 +131,17 @@
         btncancel.Enabled = True
         btnnew.Enabled = False
         clearFields()
-        txtbillid.Text = selectedBillID.ToString()
+        txtbillid.Text = billId.ToString()
+        lblremaining.Text = "₱ " & Format(RemainingBalance(billId), "N2")
     End Sub
 
     Private Sub btnsave_Click(sender As Object, e As EventArgs) Handles btnsave.Click
-        If Not IsNumeric(txtamount.Text) Then
+        Dim payAmount As Decimal
+        If Not Decimal.TryParse(txtamount.Text.Trim(), payAmount) Then
             MsgBox("Invalid amount.", MsgBoxStyle.Exclamation)
             Exit Sub
         End If
 
-        Dim payAmount = Decimal.Parse(txtamount.Text)
         Dim payDate = dtpdate.Value.ToString("yyyy-MM-dd")
 
         If payAmount <= 0 Then
@@ -139,43 +149,51 @@
             Exit Sub
         End If
 
+        Dim billId As Integer
         If adding Then
             If selectedBillID = -1 Then
                 MsgBox("No bill selected.", MsgBoxStyle.Exclamation)
                 Exit Sub
             End If
-
-            Dim remainingBalance As Decimal = Decimal.Parse(lblremaining.Text.Replace("₱", "").Trim())
-            If payAmount > remainingBalance Then
-                MsgBox("Payment exceeds remaining balance.", MsgBoxStyle.Exclamation)
-                Exit Sub
-            End If
-
-            SetQuery("INSERT INTO tblpayments (billid, date, amount) VALUES (" & _
-                     selectedBillID & ", '" & payDate & "', " & payAmount & ")")
-            MsgBox("Payment added successfully!", MsgBoxStyle.Information)
-
-            UpdateBillStatus(selectedBillID)
-
+            billId = selectedBillID
         ElseIf updating Then
             If selectedPaymentID = -1 Then
                 MsgBox("No payment selected.", MsgBoxStyle.Exclamation)
                 Exit Sub
             End If
-
-            SetQuery("UPDATE tblpayments SET date = '" & payDate & "', amount = " & payAmount & _
-                     " WHERE id = " & selectedPaymentID)
-            MsgBox("Payment updated successfully!", MsgBoxStyle.Information)
-
-            UpdateBillStatus(CInt(txtbillid.Text))
+            billId = CInt(txtbillid.Text)
+        Else
+            Exit Sub
         End If
 
-        fillPayments()
-        clearFields()
-        pnlinput.Enabled = False
-        pnlinput2.Enabled = False
+        ' Total payments may never exceed the bill, whether adding or editing a payment.
+        If payAmount > RemainingBalance(billId, If(updating, selectedPaymentID, -1)) Then
+            MsgBox("Payment exceeds remaining balance.", MsgBoxStyle.Exclamation)
+            Exit Sub
+        End If
+
+        Try
+            BeginTransaction()
+            If adding Then
+                Execute("INSERT INTO tblpayments (billid, date, amount) VALUES (@b, @d, @a)", P("@b", billId), P("@d", payDate), P("@a", payAmount))
+            Else
+                Execute("UPDATE tblpayments SET date = @d, amount = @a WHERE id = @id", P("@d", payDate), P("@a", payAmount), P("@id", selectedPaymentID))
+            End If
+            UpdateBillStatus(billId)
+            CommitTransaction()
+        Catch ex As Exception
+            RollbackTransaction()
+            MsgBox("Could not save the payment: " & ex.Message, MsgBoxStyle.Critical)
+            Exit Sub
+        End Try
+
+        MsgBox(If(adding, "Payment added successfully!", "Payment updated successfully!"), MsgBoxStyle.Information)
+
         adding = False
         updating = False
+        selectedBillID = -1
+        pnlinput.Enabled = False
+        pnlinput2.Enabled = False
         loadform()
     End Sub
 
@@ -212,9 +230,20 @@
         End If
 
         If MsgBox("Delete selected payment?", MsgBoxStyle.Question + MsgBoxStyle.YesNo) = MsgBoxResult.Yes Then
-            SetQuery("DELETE FROM tblpayments WHERE id = " & selectedPaymentID)
+            Dim billId As Integer = CInt(txtbillid.Text)
+            Try
+                BeginTransaction()
+                Execute("DELETE FROM tblpayments WHERE id = @id", P("@id", selectedPaymentID))
+                UpdateBillStatus(billId)
+                CommitTransaction()
+            Catch ex As Exception
+                RollbackTransaction()
+                MsgBox("Could not delete the payment: " & ex.Message, MsgBoxStyle.Critical)
+                Exit Sub
+            End Try
+
             MsgBox("Payment deleted.", MsgBoxStyle.Information)
-            UpdateBillStatus(CInt(txtbillid.Text))
+            fillBills()
             fillPayments()
             clearFields()
         End If
@@ -228,32 +257,21 @@
         selectedPaymentID = -1
     End Sub
 
+    ' Recalculates a bill's status from its payments. Call inside a transaction.
     Public Sub UpdateBillStatus(billId As Integer)
-        Dim query As String = "SELECT amount FROM tblbills WHERE id = " & billId
-        GetQuery(query, "bill_amt")
+        Dim billAmount As Object = GetValue("SELECT amount FROM tblbills WHERE id = @b", P("@b", billId))
+        If billAmount Is Nothing Then Exit Sub
 
-        If ds.Tables("bill_amt").Rows.Count = 0 Then Exit Sub
+        Dim totalPaid As Decimal = Convert.ToDecimal(GetValue("SELECT IFNULL(SUM(amount), 0) FROM tblpayments WHERE billid = @b", P("@b", billId)))
+        Execute("UPDATE tblbills SET status = @s WHERE id = @b", P("@s", frmBills.BillStatus(Convert.ToDecimal(billAmount), totalPaid)), P("@b", billId))
+    End Sub
 
-        Dim billAmount As Decimal = CDec(ds.Tables("bill_amt").Rows(0)("amount"))
+    Private Sub txtsearch_TextChanged(sender As Object, e As EventArgs) Handles txtsearch.TextChanged
+        fillPayments()
+    End Sub
 
-        query = "SELECT SUM(amount) AS total_paid FROM tblpayments WHERE billid = " & billId
-        GetQuery(query, "bill_paid")
-
-        Dim totalPaid As Decimal = 0
-        If ds.Tables("bill_paid").Rows.Count > 0 AndAlso Not IsDBNull(ds.Tables("bill_paid").Rows(0)("total_paid")) Then
-            totalPaid = CDec(ds.Tables("bill_paid").Rows(0)("total_paid"))
-        End If
-
-        Dim newStatus As String
-        If totalPaid >= billAmount Then
-            newStatus = "Paid"
-        ElseIf totalPaid > 0 Then
-            newStatus = "Partial"
-        Else
-            newStatus = "Unpaid"
-        End If
-
-        SetQuery("UPDATE tblbills SET status = '" & newStatus & "' WHERE id = " & billId)
+    Private Sub txtsearchbill_TextChanged(sender As Object, e As EventArgs) Handles txtsearchbill.TextChanged
+        fillBills()
     End Sub
 
 End Class

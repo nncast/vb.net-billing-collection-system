@@ -4,7 +4,10 @@
     Public selectedBillID As Integer = -1
 
     Private Sub frmBills_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Connect("localhost", "dbbilling", "3306", "root", "")
+        Connect()
+
+        ' Only the listed statuses are valid; "Partial" is set automatically from payments.
+        cmbstatus.DropDownStyle = ComboBoxStyle.DropDownList
 
         loadform()
     End Sub
@@ -26,11 +29,11 @@
                           "WHERE r.id NOT IN (SELECT readingid FROM tblbills)"
 
         If txtsearchread.Text.Trim() <> "" Then
-            q &= " AND (c.fname LIKE '%" & txtsearchread.Text & "%' OR c.lname LIKE '%" & txtsearchread.Text & "%')"
+            q &= " AND (c.fname LIKE @s OR c.lname LIKE @s)"
         End If
 
         q &= " ORDER BY r.date DESC"
-        GetQuery(q, "readings")
+        GetQuery(q, "readings", P("@s", "%" & txtsearchread.Text.Trim() & "%"))
 
         lvreadings.Items.Clear()
         For Each r As DataRow In ds.Tables("readings").Rows
@@ -45,24 +48,24 @@
 
 
     Public Sub fillBills()
-        Dim q As String = "SELECT b.id, b.readingid, c.fname, c.lname, r.date AS reading_date, b.duedate, b.amount, b.status " & _
-                  "FROM tblbills b " & _
-                  "LEFT JOIN tblreadings r ON b.readingid = r.id " & _
-                  "LEFT JOIN tblconsumers c ON r.consumerid = c.id"
+        Dim q As String = "SELECT b.id, b.readingid, c.fname, c.lname, r.date AS reading_date, b.duedate, b.amount, b.status " &
+                          "FROM tblbills b " &
+                          "LEFT JOIN tblreadings r ON b.readingid = r.id " &
+                          "LEFT JOIN tblconsumers c ON r.consumerid = c.id"
 
         If txtsearch.Text.Trim() <> "" Then
-            q &= " WHERE c.fname LIKE '%" & txtsearch.Text & "%' OR c.lname LIKE '%" & txtsearch.Text & "%'"
+            q &= " WHERE c.fname LIKE @s OR c.lname LIKE @s"
         End If
         q &= " ORDER BY b.duedate DESC"
 
-        GetQuery(q, "bills")
+        GetQuery(q, "bills", P("@s", "%" & txtsearch.Text.Trim() & "%"))
 
         lvbill.Items.Clear()
         For Each r As DataRow In ds.Tables("bills").Rows
             With lvbill.Items.Add(r("id").ToString())
                 .SubItems.Add(r("readingid").ToString())
                 .SubItems.Add(r("fname").ToString() & " " & r("lname").ToString())
-                .SubItems.Add(CDate(r("reading_date")).ToShortDateString()) ' <-- Add this
+                .SubItems.Add(CDate(r("reading_date")).ToShortDateString())
                 .SubItems.Add(CDate(r("duedate")).ToShortDateString())
                 .SubItems.Add(r("amount").ToString())
                 .SubItems.Add(r("status").ToString())
@@ -72,21 +75,22 @@
     End Sub
 
     Private Sub lvreadings_DoubleClick(sender As Object, e As EventArgs) Handles lvreadings.DoubleClick
-        If lvreadings.SelectedItems.Count > 0 Then
-            txtreadid.Text = lvreadings.FocusedItem.SubItems(0).Text
+        If lvreadings.SelectedItems.Count = 0 Then Exit Sub
 
-            Dim q As String = "SELECT curr - prev AS `usage` FROM tblreadings WHERE id = " & txtreadid.Text
-            GetQuery(q, "usage")
-            Dim usage As Decimal = Convert.ToDecimal(ds.Tables("usage").Rows(0)("usage"))
+        Dim readingId As Integer = CInt(lvreadings.SelectedItems(0).SubItems(0).Text)
 
-            Dim a As String = "SELECT rate FROM tblrates ORDER BY id DESC LIMIT 1"
-            GetQuery(a, "rate")
-            Dim rate As Decimal = Convert.ToDecimal(ds.Tables("rate").Rows(0)("rate"))
-
-            txtamount.Text = (usage * rate).ToString("N2")
-
-            dtpdate.Value = CDate(lvreadings.FocusedItem.SubItems(2).Text).AddDays(15)
+        Dim rateValue As Object = GetValue("SELECT rate FROM tblrates ORDER BY id DESC LIMIT 1")
+        If rateValue Is Nothing Then
+            MsgBox("No rate has been set yet. Add a rate under Others > Rate first.", MsgBoxStyle.Exclamation)
+            Exit Sub
         End If
+
+        Dim usage As Decimal = Convert.ToDecimal(GetValue("SELECT curr - prev FROM tblreadings WHERE id = @id", P("@id", readingId)))
+        Dim rate As Decimal = Convert.ToDecimal(rateValue)
+
+        txtreadid.Text = readingId.ToString()
+        txtamount.Text = (usage * rate).ToString("N2")
+        dtpdate.Value = CDate(lvreadings.SelectedItems(0).SubItems(2).Text).AddDays(15)
     End Sub
 
 
@@ -100,12 +104,20 @@
     End Sub
 
     Private Sub btnsave_Click(sender As Object, e As EventArgs) Handles btnsave.Click
-        If txtreadid.Text = "" Or txtamount.Text = "" Then
+        Dim readid As Integer
+        Dim amount As Decimal
+
+        If txtreadid.Text.Trim() = "" Or txtamount.Text.Trim() = "" Then
             MsgBox("Please select a reading and compute amount.", MsgBoxStyle.Exclamation)
             Exit Sub
         End If
 
-        If Not Decimal.TryParse(txtamount.Text, Nothing) Then
+        If Not Integer.TryParse(txtreadid.Text.Trim(), readid) Then
+            MsgBox("Invalid reading ID.", MsgBoxStyle.Exclamation)
+            Exit Sub
+        End If
+
+        If Not Decimal.TryParse(txtamount.Text.Trim(), amount) OrElse amount < 0 Then
             MsgBox("Invalid amount format.", MsgBoxStyle.Exclamation)
             Exit Sub
         End If
@@ -115,13 +127,19 @@
             Exit Sub
         End If
 
-        If dtpdate.Value.Date < Today Then
+        ' Only new bills need a future due date; an existing bill may already be overdue
+        ' and still has to be editable (e.g. to mark it as paid).
+        If adding AndAlso dtpdate.Value.Date < Today Then
             MsgBox("Due date cannot be in the past.", MsgBoxStyle.Exclamation)
             Exit Sub
         End If
 
-        Dim qval As String = "SELECT prev, curr FROM tblreadings WHERE id = " & txtreadid.Text
-        GetQuery(qval, "readingval")
+        GetQuery("SELECT prev, curr FROM tblreadings WHERE id = @id", "readingval", P("@id", readid))
+        If ds.Tables("readingval").Rows.Count = 0 Then
+            MsgBox("Reading #" & readid & " does not exist.", MsgBoxStyle.Exclamation)
+            Exit Sub
+        End If
+
         Dim prev As Decimal = Convert.ToDecimal(ds.Tables("readingval").Rows(0)("prev"))
         Dim curr As Decimal = Convert.ToDecimal(ds.Tables("readingval").Rows(0)("curr"))
 
@@ -130,52 +148,71 @@
             Exit Sub
         End If
 
-        Dim readid As Integer = Integer.Parse(txtreadid.Text)
-        Dim amount As Decimal = Decimal.Parse(txtamount.Text)
-        Dim duedate As String = dtpdate.Value.ToString("yyyy-MM-dd")
-        Dim status As String = cmbstatus.Text
-
-        Dim q As String = "SELECT COUNT(*) FROM tblbills WHERE readingid = " & readid
-        GetQuery(q, "checkbill")
-        If adding AndAlso Convert.ToInt32(ds.Tables("checkbill").Rows(0)(0)) > 0 Then
+        If CInt(GetValue("SELECT COUNT(*) FROM tblbills WHERE readingid = @r AND id <> @id", P("@r", readid), P("@id", If(updating, selectedBillID, -1)))) > 0 Then
             MsgBox("A bill for this reading already exists.", MsgBoxStyle.Exclamation)
             Exit Sub
         End If
 
-        If adding Then
-            SetQuery("INSERT INTO tblbills (readingid, duedate, amount, status) VALUES (" &
-                     readid & ", '" & duedate & "', " & amount & ", '" & status & "')")
+        Dim duedate As String = dtpdate.Value.ToString("yyyy-MM-dd")
+        Dim requestedStatus As String = cmbstatus.SelectedItem.ToString()
+        Dim billID As Integer = selectedBillID
+        Dim autoPayment As Decimal = 0
+        Dim finalStatus As String = ""
 
-            GetQuery("SELECT LAST_INSERT_ID()", "lastid")
-            selectedBillID = Convert.ToInt32(ds.Tables("lastid").Rows(0)(0))
+        Try
+            BeginTransaction()
 
-            adding = False
-            MsgBox("Bill added successfully!", MsgBoxStyle.Information)
-
-        ElseIf updating Then
-            SetQuery("UPDATE tblbills SET readingid = " & readid & ", duedate = '" & duedate &
-                     "', amount = " & amount & ", status = '" & status & "' WHERE id = " & selectedBillID)
-            updating = False
-            MsgBox("Bill updated successfully!", MsgBoxStyle.Information)
-        End If
-
-        If status = "Paid" Then
-            Dim q2 As String = "SELECT COUNT(*) FROM tblpayments WHERE billid = " & selectedBillID
-            GetQuery(q2, "haspayment")
-
-            If Convert.ToInt32(ds.Tables("haspayment").Rows(0)(0)) = 0 Then
-                Dim today As String = Format(DateTime.Now, "yyyy-MM-dd")
-                SetQuery("INSERT INTO tblpayments (billid, date, amount) VALUES (" & selectedBillID & ", '" & today & "', " & amount & ")")
-                MsgBox("Auto payment added because bill was marked as Paid.", MsgBoxStyle.Information)
+            If adding Then
+                Execute("INSERT INTO tblbills (readingid, duedate, amount, status) VALUES (@r, @due, @amount, 'Unpaid')",
+                        P("@r", readid), P("@due", duedate), P("@amount", amount))
+                billID = GetLastInsertedID()
+            Else
+                Execute("UPDATE tblbills SET readingid = @r, duedate = @due, amount = @amount WHERE id = @id",
+                        P("@r", readid), P("@due", duedate), P("@amount", amount), P("@id", billID))
             End If
+
+            Dim totalPaid As Decimal = Convert.ToDecimal(GetValue("SELECT IFNULL(SUM(amount), 0) FROM tblpayments WHERE billid = @b", P("@b", billID)))
+
+            ' Marking a bill as Paid records a payment for whatever is still owed.
+            If requestedStatus = "Paid" AndAlso totalPaid < amount Then
+                autoPayment = amount - totalPaid
+                Execute("INSERT INTO tblpayments (billid, date, amount) VALUES (@b, CURDATE(), @amount)", P("@b", billID), P("@amount", autoPayment))
+                totalPaid = amount
+            End If
+
+            ' The stored status always matches the payments on the bill.
+            finalStatus = BillStatus(amount, totalPaid)
+            Execute("UPDATE tblbills SET status = @status WHERE id = @id", P("@status", finalStatus), P("@id", billID))
+
+            CommitTransaction()
+        Catch ex As Exception
+            RollbackTransaction()
+            MsgBox("Could not save the bill: " & ex.Message, MsgBoxStyle.Critical)
+            Exit Sub
+        End Try
+
+        MsgBox(If(adding, "Bill added successfully!", "Bill updated successfully!"), MsgBoxStyle.Information)
+        If autoPayment > 0 Then
+            MsgBox("Auto payment of " & autoPayment.ToString("N2") & " added because bill was marked as Paid.", MsgBoxStyle.Information)
+        ElseIf finalStatus <> requestedStatus Then
+            MsgBox("Status was set to " & finalStatus & " to match the payments already recorded for this bill.", MsgBoxStyle.Information)
         End If
 
+        adding = False
+        updating = False
         fillBills()
+        fillReadings()
         clearFields()
         disablebuttons()
         pnlinput.Enabled = False
         pnlinput2.Enabled = False
     End Sub
+
+    Public Shared Function BillStatus(amount As Decimal, totalPaid As Decimal) As String
+        If totalPaid >= amount Then Return "Paid"
+        If totalPaid > 0 Then Return "Partial"
+        Return "Unpaid"
+    End Function
 
 
     Private Sub btnupdate_Click(sender As Object, e As EventArgs) Handles btnupdate.Click
@@ -195,21 +232,26 @@
             Exit Sub
         End If
 
-        Dim qCheck As String = "SELECT COUNT(*) FROM tblpayments WHERE billid = " & selectedBillID
-        GetQuery(qCheck, "haspayments")
-
-        Dim paymentCount As Integer = Convert.ToInt32(ds.Tables("haspayments").Rows(0)(0))
+        Dim paymentCount As Integer = CInt(GetValue("SELECT COUNT(*) FROM tblpayments WHERE billid = @b", P("@b", selectedBillID)))
         If paymentCount > 0 Then
-            If MsgBox("This bill has " & paymentCount & " payment(s). Deleting it will remove all related payments. Continue?", MsgBoxStyle.Critical + MsgBoxStyle.YesNo, "Confirm Deletion") = MsgBoxResult.Yes Then
-                SetQuery("DELETE FROM tblpayments WHERE billid = " & selectedBillID)
-            Else
+            If MsgBox("This bill has " & paymentCount & " payment(s). Deleting it will remove all related payments. Continue?", MsgBoxStyle.Critical + MsgBoxStyle.YesNo, "Confirm Deletion") <> MsgBoxResult.Yes Then
                 Exit Sub
             End If
         ElseIf MsgBox("Are you sure you want to delete this bill?", MsgBoxStyle.Question + MsgBoxStyle.YesNo, "Confirm Deletion") <> MsgBoxResult.Yes Then
             Exit Sub
         End If
 
-        SetQuery("DELETE FROM tblbills WHERE id = " & selectedBillID)
+        Try
+            BeginTransaction()
+            Execute("DELETE FROM tblpayments WHERE billid = @b", P("@b", selectedBillID))
+            Execute("DELETE FROM tblbills WHERE id = @b", P("@b", selectedBillID))
+            CommitTransaction()
+        Catch ex As Exception
+            RollbackTransaction()
+            MsgBox("Could not delete the bill: " & ex.Message, MsgBoxStyle.Critical)
+            Exit Sub
+        End Try
+
         MsgBox("Bill and related payments deleted successfully.", MsgBoxStyle.Information)
 
         fillBills()
@@ -242,20 +284,21 @@
     End Sub
 
     Private Sub lvbill_DoubleClick(sender As Object, e As EventArgs) Handles lvbill.DoubleClick
-        If lvbill.SelectedItems.Count > 0 Then
-            With lvbill.FocusedItem
-                selectedBillID = Integer.Parse(.SubItems(0).Text)
-                txtreadid.Text = .SubItems(1).Text
-                dtpdate.Value = CDate(.SubItems(4).Text)
-                txtamount.Text = .SubItems(5).Text
-                cmbstatus.Text = .SubItems(6).Text
-            End With
+        If adding Or updating Or lvbill.SelectedItems.Count = 0 Then Exit Sub
 
-            btnupdate.Enabled = True
-            btndelete.Enabled = True
-            pnlinput.Enabled = False
-            pnlinput2.Enabled = False
-        End If
+        With lvbill.SelectedItems(0)
+            selectedBillID = Integer.Parse(.SubItems(0).Text)
+            txtreadid.Text = .SubItems(1).Text
+            dtpdate.Value = CDate(.SubItems(4).Text)
+            txtamount.Text = .SubItems(5).Text
+            ' "Partial" isn't selectable; it is recalculated from the payments when saving.
+            cmbstatus.SelectedItem = If(.SubItems(6).Text = "Paid", "Paid", "Unpaid")
+        End With
+
+        btnupdate.Enabled = True
+        btndelete.Enabled = True
+        pnlinput.Enabled = False
+        pnlinput2.Enabled = False
     End Sub
 
     Public Sub clearFields()
