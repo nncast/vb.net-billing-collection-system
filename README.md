@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="BillingAndCollectionSystem/BillingAndCollectionSystem/Resources/LOGO.png" alt="BillingAndCollectionSystem logo" width="100"/>
+  <img src="BillingAndCollectionSystem/BillingAndCollectionSystem/Resources/LOGO.png" alt="VOLT logo" width="100"/>
 </p>
 
 <p align="center">
@@ -17,9 +17,9 @@
   <a href="https://github.com/nncast/vb.net-billing-collection-system/releases">All releases</a>
 </p>
 
-# BillingAndCollectionSystem
+# VOLT
 
-**BillingAndCollectionSystem** is a desktop application developed in **VB.NET** designed for utility service providers to manage consumer billing and payments.
+**VOLT** is a desktop billing and collection system developed in **VB.NET** for utility service providers to manage consumer billing and payments.
 It allows administrators to create consumer records, generate electricity bills based on meter readings, and track collections and payments.
 
 > **Current version: v0.1.1** — bug-fix and security release: bill status and partial payments are always right, overpayments are blocked, every query is parameterized, the connection settings live in a config file, and there is a ready-to-run Windows build. See [Releases](https://github.com/nncast/vb.net-billing-collection-system/releases) for the release notes.
@@ -89,4 +89,4 @@ It allows administrators to create consumer records, generate electricity bills 
 
 ---
 
-*BillingAndCollectionSystem · 2025 · VB.NET · Windows Forms · .NET Framework 4.8.1 · MySQL*
+*VOLT · Billing and Collection System · 2025 · VB.NET · Windows Forms · .NET Framework 4.8.1 · MySQL*
