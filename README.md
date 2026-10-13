@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.1-F5A300?style=flat-square" alt="version">
+  <img src="https://img.shields.io/badge/version-0.1.2-F5A300?style=flat-square" alt="version">
   <img src="https://img.shields.io/badge/status-complete-F5A300?style=flat-square" alt="status">
   <img src="https://img.shields.io/badge/VB.NET-Windows_Forms-512BD4?style=flat-square&logo=dotnet&logoColor=white" alt="VB.NET">
   <img src="https://img.shields.io/badge/.NET_Framework-4.8.1-512BD4?style=flat-square&logo=dotnet&logoColor=white" alt=".NET Framework">
@@ -11,9 +11,9 @@
 </p>
 
 <p align="center">
-  <b>Download v0.1.1:</b>
-  <a href="https://github.com/nncast/vb.net-billing-collection-system/releases/download/v0.1.1/BillingAndCollectionSystem-v0.1.1-Windows.zip">Windows (.zip)</a> ·
-  <a href="https://github.com/nncast/vb.net-billing-collection-system/archive/refs/tags/v0.1.1.zip">Source (.zip)</a> |
+  <b>Download v0.1.2:</b>
+  <a href="https://github.com/nncast/vb.net-billing-collection-system/releases/download/v0.1.2/BillingAndCollectionSystem-v0.1.2-Windows.zip">Windows (.zip)</a> ·
+  <a href="https://github.com/nncast/vb.net-billing-collection-system/archive/refs/tags/v0.1.2.zip">Source (.zip)</a> |
   <a href="https://github.com/nncast/vb.net-billing-collection-system/releases">All releases</a>
 </p>
 
@@ -22,7 +22,7 @@
 **VOLT** is a desktop billing and collection system developed in **VB.NET** for utility service providers to manage consumer billing and payments.
 It allows administrators to create consumer records, generate electricity bills based on meter readings, and track collections and payments.
 
-> **Current version: v0.1.1** — bug-fix and security release: bill status and partial payments are always right, overpayments are blocked, every query is parameterized, the connection settings live in a config file, and there is a ready-to-run Windows build. See [Releases](https://github.com/nncast/vb.net-billing-collection-system/releases) for the release notes.
+> **Current version: v0.1.2** — documentation update; the app is unchanged from v0.1.1, the bug-fix and security release: bill status and partial payments are always right, overpayments are blocked, every query is parameterized, the connection settings live in a config file, and there is a ready-to-run Windows build. See [Releases](https://github.com/nncast/vb.net-billing-collection-system/releases) for the release notes.
 
 <p align="center">
   <img src="assets/screenshots/home.png" width="400" alt="Home dashboard"/>
@@ -66,14 +66,14 @@ It allows administrators to create consumer records, generate electricity bills 
 
 **Windows build (no Visual Studio needed)**
 
-1. Download [`BillingAndCollectionSystem-v0.1.1-Windows.zip`](https://github.com/nncast/vb.net-billing-collection-system/releases/download/v0.1.1/BillingAndCollectionSystem-v0.1.1-Windows.zip) from the [v0.1.1 release](https://github.com/nncast/vb.net-billing-collection-system/releases/tag/v0.1.1) and extract it.
+1. Download [`BillingAndCollectionSystem-v0.1.2-Windows.zip`](https://github.com/nncast/vb.net-billing-collection-system/releases/download/v0.1.2/BillingAndCollectionSystem-v0.1.2-Windows.zip) from the [v0.1.2 release](https://github.com/nncast/vb.net-billing-collection-system/releases/tag/v0.1.2) and extract it.
 2. Start MySQL (XAMPP, WAMP, or another server) and import `database/dbbilling.sql` from the extracted folder.
 3. If your MySQL server, port, user or password differ from `localhost:3306` / `root` / no password, open `BillingAndCollectionSystem.exe.config` in Notepad and edit the `BillingDb` connection string.
 4. Run `BillingAndCollectionSystem.exe`.
 
 **From source**
 
-1. Clone the repository, or download the [source .zip](https://github.com/nncast/vb.net-billing-collection-system/archive/refs/tags/v0.1.1.zip).
+1. Clone the repository, or download the [source .zip](https://github.com/nncast/vb.net-billing-collection-system/archive/refs/tags/v0.1.2.zip).
    ```bash
    git clone https://github.com/nncast/vb.net-billing-collection-system.git
    ```
