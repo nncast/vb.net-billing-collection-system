@@ -6,14 +6,20 @@
 
     Private Sub frmPayments_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Connect()
+        ' The bill is picked from the pending-bills list, never typed.
+        txtbillid.ReadOnly = True
         loadform()
     End Sub
 
     Public Sub loadform()
         btnnew.Enabled = True
         btnsave.Enabled = False
+        btnupdate.Enabled = False
+        btndelete.Enabled = False
+        btncancel.Enabled = False
         pnlinput.Enabled = False
         pnlinput2.Enabled = False
+        selectedBillID = -1
 
         fillBills()
         fillPayments()
@@ -89,17 +95,16 @@
         Return billAmount - paid
     End Function
 
+    ' The pending-bills list is only enabled after New, so a bill is picked while adding.
     Private Sub lvbills_DoubleClick(sender As Object, e As EventArgs) Handles lvbills.DoubleClick
-        If adding Or updating Or lvbills.SelectedItems.Count = 0 Then Exit Sub
+        If Not adding Or lvbills.SelectedItems.Count = 0 Then Exit Sub
 
         selectedBillID = CInt(lvbills.SelectedItems(0).SubItems(0).Text)
         txtbillid.Text = selectedBillID.ToString()
-        lblremaining.Text = "₱ " & Format(RemainingBalance(selectedBillID), "N2")
-
-        fillPayments()
-
-        btnupdate.Enabled = False
-        btndelete.Enabled = False
+        Dim remaining As Decimal = RemainingBalance(selectedBillID)
+        lblremaining.Text = "₱ " & Format(remaining, "N2")
+        ' Most payments settle the whole balance, so start from it.
+        txtamount.Text = remaining.ToString("0.00")
     End Sub
 
     Private Sub lvpayments_DoubleClick(sender As Object, e As EventArgs) Handles lvpayments.DoubleClick
@@ -118,21 +123,16 @@
 
 
     Private Sub btnnew_Click(sender As Object, e As EventArgs) Handles btnnew.Click
-        If selectedBillID = -1 Then
-            MsgBox("Double-click a pending bill first.", MsgBoxStyle.Information)
-            Exit Sub
-        End If
-
-        Dim billId As Integer = selectedBillID
         adding = True
+        selectedBillID = -1
+        clearFields()
         pnlinput.Enabled = True
         pnlinput2.Enabled = True
         btnsave.Enabled = True
         btncancel.Enabled = True
         btnnew.Enabled = False
-        clearFields()
-        txtbillid.Text = billId.ToString()
-        lblremaining.Text = "₱ " & Format(RemainingBalance(billId), "N2")
+        btnupdate.Enabled = False
+        btndelete.Enabled = False
     End Sub
 
     Private Sub btnsave_Click(sender As Object, e As EventArgs) Handles btnsave.Click
@@ -152,7 +152,7 @@
         Dim billId As Integer
         If adding Then
             If selectedBillID = -1 Then
-                MsgBox("No bill selected.", MsgBoxStyle.Exclamation)
+                MsgBox("Double-click a pending bill to pay.", MsgBoxStyle.Exclamation)
                 Exit Sub
             End If
             billId = selectedBillID
@@ -191,9 +191,6 @@
 
         adding = False
         updating = False
-        selectedBillID = -1
-        pnlinput.Enabled = False
-        pnlinput2.Enabled = False
         loadform()
     End Sub
 
@@ -201,11 +198,14 @@
     Private Sub btncancel_Click(sender As Object, e As EventArgs) Handles btncancel.Click
         adding = False
         updating = False
+        selectedBillID = -1
         clearFields()
         pnlinput.Enabled = False
         pnlinput2.Enabled = False
         btnsave.Enabled = False
         btncancel.Enabled = False
+        btnupdate.Enabled = False
+        btndelete.Enabled = False
         btnnew.Enabled = True
     End Sub
 
@@ -216,11 +216,14 @@
         End If
         updating = True
         adding = False
+        ' A payment stays on its bill, so only the date and amount are editable.
         pnlinput.Enabled = True
-        pnlinput2.Enabled = True
+        pnlinput2.Enabled = False
         btnsave.Enabled = True
         btncancel.Enabled = True
         btnnew.Enabled = False
+        btnupdate.Enabled = False
+        btndelete.Enabled = False
     End Sub
 
     Private Sub btndelete_Click(sender As Object, e As EventArgs) Handles btndelete.Click
@@ -246,6 +249,8 @@
             fillBills()
             fillPayments()
             clearFields()
+            btnupdate.Enabled = False
+            btndelete.Enabled = False
         End If
     End Sub
 
