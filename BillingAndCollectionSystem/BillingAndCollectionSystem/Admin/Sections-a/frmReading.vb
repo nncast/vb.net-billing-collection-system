@@ -6,6 +6,8 @@
 
     Private Sub frmReading_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Connect()
+        ' Usage is computed from the two readings, never typed.
+        txtusage.ReadOnly = True
         loadform()
     End Sub
 
@@ -216,7 +218,7 @@
         pnlinput2.Enabled = False
     End Sub
 
-    Private Sub txtcurr_TextChanged(sender As Object, e As EventArgs) Handles txtcurr.TextChanged
+    Private Sub txtcurr_TextChanged(sender As Object, e As EventArgs) Handles txtcurr.TextChanged, txtprev.TextChanged
         Dim p As Decimal
         Dim c As Decimal
         Decimal.TryParse(txtprev.Text, p)
