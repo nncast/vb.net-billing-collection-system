@@ -23,7 +23,8 @@
         End If
 
 
-        query &= "GROUP BY report_month, c.fname, c.lname ORDER BY report_month DESC"
+        ' Group by consumer ID so two consumers who share a name get separate rows.
+        query &= "GROUP BY report_month, c.id, c.fname, c.lname ORDER BY report_month DESC, c.lname, c.fname"
 
         GetQuery(query, "monthly", P("@f", "%" & filter & "%"))
 
