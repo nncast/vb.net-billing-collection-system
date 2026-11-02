@@ -311,6 +311,9 @@
 
     Public Sub enablebuttons()
         btnnew.Enabled = False
+        ' Deleting the bill being edited would leave the form saving a bill that no longer exists.
+        btnupdate.Enabled = False
+        btndelete.Enabled = False
         btnsave.Enabled = True
         btncancel.Enabled = True
     End Sub
