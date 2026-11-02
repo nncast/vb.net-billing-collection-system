@@ -19,7 +19,9 @@
 
 
         If filter <> "" Then
-            query &= "WHERE DATE_FORMAT(r.date, '%Y-%m') LIKE @f OR c.fname LIKE @f OR c.lname LIKE @f "
+            ' The list shows months as "October 2026", so match that as well as "2026-10".
+            query &= "WHERE DATE_FORMAT(r.date, '%Y-%m') LIKE @f OR DATE_FORMAT(r.date, '%M %Y') LIKE @f " &
+                     "OR c.fname LIKE @f OR c.lname LIKE @f OR CONCAT(c.fname, ' ', c.lname) LIKE @f "
         End If
 
 
