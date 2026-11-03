@@ -18,7 +18,7 @@
         btndelete.Enabled = False
         btncancel.Enabled = False
         pnlinput.Enabled = False
-        pnlinput2.Enabled = False
+        pnlinput2.Enabled = True   ' the pending bills stay usable: double-click one to pay it
         selectedBillID = -1
 
         fillBills()
@@ -95,9 +95,10 @@
         Return billAmount - paid
     End Function
 
-    ' The pending-bills list is only enabled after New, so a bill is picked while adding.
+    ' Double-clicking a pending bill starts its payment (no need to press New first).
     Private Sub lvbills_DoubleClick(sender As Object, e As EventArgs) Handles lvbills.DoubleClick
-        If Not adding Or lvbills.SelectedItems.Count = 0 Then Exit Sub
+        If updating Or lvbills.SelectedItems.Count = 0 Then Exit Sub
+        If Not adding Then btnnew_Click(sender, e)
 
         selectedBillID = CInt(lvbills.SelectedItems(0).SubItems(0).Text)
         txtbillid.Text = selectedBillID.ToString()
@@ -105,6 +106,16 @@
         lblremaining.Text = "₱ " & Format(remaining, "N2")
         ' Most payments settle the whole balance, so start from it.
         txtamount.Text = remaining.ToString("0.00")
+        txtamount.Focus()
+        txtamount.SelectAll()
+    End Sub
+
+    ' Enter in the amount saves the payment
+    Private Sub txtamount_KeyDown(sender As Object, e As KeyEventArgs) Handles txtamount.KeyDown
+        If e.KeyCode = Keys.Enter AndAlso btnsave.Enabled Then
+            btnsave.PerformClick()
+            e.SuppressKeyPress = True
+        End If
     End Sub
 
     Private Sub lvpayments_DoubleClick(sender As Object, e As EventArgs) Handles lvpayments.DoubleClick
@@ -152,7 +163,7 @@
         Dim billId As Integer
         If adding Then
             If selectedBillID = -1 Then
-                MsgBox("Double-click a pending bill to pay.", MsgBoxStyle.Exclamation)
+                MsgBox("Double-click a pending bill to pay it.", MsgBoxStyle.Exclamation)
                 Exit Sub
             End If
             billId = selectedBillID
@@ -187,7 +198,7 @@
             Exit Sub
         End Try
 
-        MsgBox(If(adding, "Payment added successfully!", "Payment updated successfully!"), MsgBoxStyle.Information)
+        Toast.Notify(If(adding, "Payment added successfully!", "Payment updated successfully!"))
 
         adding = False
         updating = False
@@ -201,7 +212,7 @@
         selectedBillID = -1
         clearFields()
         pnlinput.Enabled = False
-        pnlinput2.Enabled = False
+        pnlinput2.Enabled = True
         btnsave.Enabled = False
         btncancel.Enabled = False
         btnupdate.Enabled = False
@@ -245,7 +256,7 @@
                 Exit Sub
             End Try
 
-            MsgBox("Payment deleted.", MsgBoxStyle.Information)
+            Toast.Notify("Payment deleted.")
             fillBills()
             fillPayments()
             clearFields()

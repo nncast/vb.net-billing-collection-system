@@ -72,12 +72,12 @@
         If adding Then
             If MsgBox("Add new rate?", MsgBoxStyle.YesNo + MsgBoxStyle.Question) = MsgBoxResult.Yes Then
                 saved = SetQuery("INSERT INTO tblrates (date, rate) VALUES (NOW(), @rate)", P("@rate", rate))
-                If saved Then MsgBox("Rate added successfully!")
+                If saved Then Toast.Notify("Rate added successfully!")
             End If
         ElseIf updating Then
             If MsgBox("Update this rate?", MsgBoxStyle.YesNo + MsgBoxStyle.Question) = MsgBoxResult.Yes Then
                 saved = SetQuery("UPDATE tblrates SET rate = @rate WHERE id = @id", P("@rate", rate), P("@id", rateid))
-                If saved Then MsgBox("Rate updated successfully!")
+                If saved Then Toast.Notify("Rate updated successfully!")
             End If
         End If
 
@@ -106,7 +106,7 @@
 
         If MsgBox("Delete this rate?", MsgBoxStyle.YesNo + MsgBoxStyle.Question) = MsgBoxResult.Yes Then
             If SetQuery("DELETE FROM tblrates WHERE id = @id", P("@id", rateid)) Then
-                MsgBox("Rate deleted successfully!")
+                Toast.Notify("Rate deleted successfully!")
                 fill()
                 clearfields()
                 rateid = Nothing

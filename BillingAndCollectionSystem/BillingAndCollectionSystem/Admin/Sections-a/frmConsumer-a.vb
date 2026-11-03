@@ -79,14 +79,14 @@
                 saved = SetQuery("INSERT INTO tblconsumers (fname, lname, phone, address) VALUES (@fname, @lname, @phone, @address)",
                                  P("@fname", txtfname.Text.Trim()), P("@lname", txtlname.Text.Trim()),
                                  P("@phone", txtphone.Text.Trim()), P("@address", txtaddress.Text.Trim()))
-                If saved Then MsgBox("Consumer added successfully!", MsgBoxStyle.Information, "Success")
+                If saved Then Toast.Notify("Consumer added successfully!")
             End If
         ElseIf updating Then
             If MsgBox("Update this consumer?", MsgBoxStyle.Question + MsgBoxStyle.YesNo, "Confirm") = MsgBoxResult.Yes Then
                 saved = SetQuery("UPDATE tblconsumers SET fname = @fname, lname = @lname, phone = @phone, address = @address WHERE id = @id",
                                  P("@fname", txtfname.Text.Trim()), P("@lname", txtlname.Text.Trim()),
                                  P("@phone", txtphone.Text.Trim()), P("@address", txtaddress.Text.Trim()), P("@id", consumerId))
-                If saved Then MsgBox("Consumer updated successfully!", MsgBoxStyle.Information, "Success")
+                If saved Then Toast.Notify("Consumer updated successfully!")
             End If
         End If
 
@@ -113,7 +113,7 @@
                 consumerId = Nothing
                 fill()
                 clearfields()
-                MsgBox("Consumer and all related data deleted successfully!", MsgBoxStyle.Information, "Success")
+                Toast.Notify("Consumer and all related data deleted successfully!")
             End If
         End If
     End Sub
