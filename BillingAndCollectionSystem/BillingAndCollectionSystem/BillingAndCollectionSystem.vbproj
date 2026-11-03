@@ -147,6 +147,7 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Conn.vb" />
+    <Compile Include="Toast.vb" />
     <Compile Include="Globals.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">

@@ -16,7 +16,7 @@
         btnnew.Enabled = True
         btnsave.Enabled = False
         pnlinput.Enabled = False
-        pnlinput2.Enabled = False
+        pnlinput2.Enabled = True   ' unbilled readings stay usable: double-click one to bill it
 
         fillReadings()
         fillBills()
@@ -74,8 +74,11 @@
 
     End Sub
 
+    ' Double-clicking an unbilled reading starts its bill (no need to press New first);
+    ' while a bill is being updated it moves that bill to the reading instead.
     Private Sub lvreadings_DoubleClick(sender As Object, e As EventArgs) Handles lvreadings.DoubleClick
         If lvreadings.SelectedItems.Count = 0 Then Exit Sub
+        If Not (adding Or updating) Then btnnew_Click(sender, e)
 
         Dim readingId As Integer = CInt(lvreadings.SelectedItems(0).SubItems(0).Text)
 
@@ -191,21 +194,23 @@
             Exit Sub
         End Try
 
-        MsgBox(If(adding, "Bill added successfully!", "Bill updated successfully!"), MsgBoxStyle.Information)
+        Dim note As String = ""
         If autoPayment > 0 Then
-            MsgBox("Auto payment of " & autoPayment.ToString("N2") & " added because bill was marked as Paid.", MsgBoxStyle.Information)
+            note = " A payment of " & autoPayment.ToString("N2") & " was recorded because it was marked as Paid."
         ElseIf finalStatus <> requestedStatus Then
-            MsgBox("Status was set to " & finalStatus & " to match the payments already recorded for this bill.", MsgBoxStyle.Information)
+            note = " Its status is " & finalStatus & ", to match the payments already recorded."
         End If
+        Toast.Notify(If(adding, "Bill added successfully!", "Bill updated successfully!") & note)
 
-        adding = False
-        updating = False
         fillBills()
         fillReadings()
         clearFields()
+        If adding Then Exit Sub   ' bills go out in batches: stay ready for the next reading
+
+        updating = False
         disablebuttons()
         pnlinput.Enabled = False
-        pnlinput2.Enabled = False
+        pnlinput2.Enabled = True
     End Sub
 
     Public Shared Function BillStatus(amount As Decimal, totalPaid As Decimal) As String
@@ -252,7 +257,7 @@
             Exit Sub
         End Try
 
-        MsgBox("Bill and related payments deleted successfully.", MsgBoxStyle.Information)
+        Toast.Notify("Bill and related payments deleted successfully.")
 
         fillBills()
         fillReadings()
@@ -263,11 +268,11 @@
 
     Private Sub btncancel_Click(sender As Object, e As EventArgs) Handles btncancel.Click
         If adding Then
-            If MsgBox("Cancel bill creation?", MsgBoxStyle.YesNo + MsgBoxStyle.Question) = MsgBoxResult.Yes Then
-                adding = False
-            Else
+            ' Ask only when a reading has been picked
+            If txtreadid.Text.Trim() <> "" AndAlso MsgBox("Cancel bill creation?", MsgBoxStyle.YesNo + MsgBoxStyle.Question) <> MsgBoxResult.Yes Then
                 Exit Sub
             End If
+            adding = False
         ElseIf updating Then
             If MsgBox("Cancel bill update?", MsgBoxStyle.YesNo + MsgBoxStyle.Question) = MsgBoxResult.Yes Then
                 updating = False
@@ -279,7 +284,7 @@
         disablebuttons()
         clearFields()
         pnlinput.Enabled = False
-        pnlinput2.Enabled = False
+        pnlinput2.Enabled = True
         selectedBillID = -1
     End Sub
 
@@ -298,7 +303,7 @@
         btnupdate.Enabled = True
         btndelete.Enabled = True
         pnlinput.Enabled = False
-        pnlinput2.Enabled = False
+        pnlinput2.Enabled = True
     End Sub
 
     Public Sub clearFields()

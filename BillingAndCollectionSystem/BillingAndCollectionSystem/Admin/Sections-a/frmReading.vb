@@ -140,34 +140,57 @@
         If adding Then
             saved = SetQuery("INSERT INTO tblreadings (consumerid, date, prev, curr) VALUES (@c, @d, @prev, @curr)",
                              P("@c", conid), P("@d", readingdate), P("@prev", prev), P("@curr", curr))
-            If saved Then MsgBox("Reading record added successfully!", MsgBoxStyle.Information)
+            If saved Then Toast.Notify("Reading record added successfully!")
 
         ElseIf updating Then
             saved = SetQuery("UPDATE tblreadings SET consumerid = @c, date = @d, prev = @prev, curr = @curr WHERE id = @id",
                              P("@c", conid), P("@d", readingdate), P("@prev", prev), P("@curr", curr), P("@id", selectedReadingID))
-            If saved Then MsgBox("Reading record updated successfully!", MsgBoxStyle.Information)
+            If saved Then Toast.Notify("Reading record updated successfully!")
         End If
 
         If Not saved Then Exit Sub
 
-        adding = False
-        updating = False
-        selectedReadingID = -1
         fill()
         clearFields()
+        selectedReadingID = -1
+        If adding Then
+            ' Readings come in batches each month: stay ready for the next consumer
+            selectedConsumerID = -1
+            txtsearchcon.Focus()
+            Exit Sub
+        End If
+
+        updating = False
         disablebuttons()
         pnlinput.Enabled = False
         pnlinput2.Enabled = False
     End Sub
 
+    ' Enter in the consumer search picks the first match, ready for its current reading
+    Private Sub txtsearchcon_KeyDown(sender As Object, e As KeyEventArgs) Handles txtsearchcon.KeyDown
+        If e.KeyCode <> Keys.Enter OrElse lvconsumers.Items.Count = 0 Then Exit Sub
+        e.SuppressKeyPress = True
+        lvconsumers.Items(0).Selected = True
+        lvconsumers_DoubleClick(sender, e)
+        txtcurr.Focus()
+    End Sub
+
+    ' Enter in the current reading saves it
+    Private Sub txtcurr_KeyDown(sender As Object, e As KeyEventArgs) Handles txtcurr.KeyDown
+        If e.KeyCode = Keys.Enter AndAlso btnsave.Enabled Then
+            btnsave.PerformClick()
+            e.SuppressKeyPress = True
+        End If
+    End Sub
+
 
     Private Sub btncancel_Click(sender As Object, e As EventArgs) Handles btncancel.Click
         If adding Then
-            If MsgBox("Are you sure you want to cancel adding new reading?", MsgBoxStyle.Question + MsgBoxStyle.YesNo, "Cancel") = MsgBoxResult.Yes Then
-                adding = False
-            Else
+            ' Ask only when a reading has been started
+            If txtconid.Text.Trim() <> "" AndAlso MsgBox("Are you sure you want to cancel adding new reading?", MsgBoxStyle.Question + MsgBoxStyle.YesNo, "Cancel") <> MsgBoxResult.Yes Then
                 Exit Sub
             End If
+            adding = False
         End If
 
         updating = False
@@ -298,7 +321,7 @@
                 Exit Sub
             End Try
 
-            MsgBox("Reading and all related transactions deleted successfully!", MsgBoxStyle.Information)
+            Toast.Notify("Reading and all related transactions deleted successfully!")
 
             selectedReadingID = -1
             fill()
